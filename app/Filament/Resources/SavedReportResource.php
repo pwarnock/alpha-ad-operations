@@ -23,6 +23,8 @@ class SavedReportResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $user = auth()->user();
+        
         return $form
             ->schema([
                 Forms\Components\Section::make('Report Configuration')
@@ -45,6 +47,39 @@ class SavedReportResource extends Resource
                             ->default(false),
                     ])
                     ->columns(2),
+                
+                Forms\Components\Section::make('Multitenancy Configuration')
+                    ->schema([
+                        Forms\Components\Select::make('organization_id')
+                            ->label('Organization')
+                            ->options(Organization::active()->pluck('name', 'id'))
+                            ->default(fn () => $user?->organization_id)
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $set('organizational_unit_id', null);
+                            }),
+                        Forms\Components\Select::make('organizational_unit_id')
+                            ->label('Organizational Unit')
+                            ->options(function (callable $get) {
+                                $orgId = $get('organization_id');
+                                if (!$orgId) return [];
+                                
+                                return OrganizationalUnit::forOrganization($orgId)
+                                    ->active()
+                                    ->with(['parent'])
+                                    ->get()
+                                    ->map(function ($ou) {
+                                        $prefix = $ou->level > 0 ? str_repeat('— ', $ou->level) : '';
+                                        return [$ou->id => $prefix . $ou->name];
+                                    })
+                                    ->toArray();
+                            })
+                            ->default(fn () => $user?->organizational_unit_id)
+                            ->nullable(),
+                    ])
+                    ->columns(2)
+                    ->visible(fn () => auth()->user()?->is_admin),
                 
                 Forms\Components\Section::make('Report Filters')
                     ->schema([
@@ -131,6 +166,14 @@ class SavedReportResource extends Resource
                     ->label('Shared')
                     ->boolean()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('organization.name')
+                    ->label('Organization')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('organizationalUnit.name')
+                    ->label('OU')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Created By')
                     ->sortable()
@@ -148,6 +191,18 @@ class SavedReportResource extends Resource
                         'campaign_delivery' => 'Campaign Delivery',
                         'revenue' => 'Revenue Report',
                     ]),
+                Tables\Filters\SelectFilter::make('organization_id')
+                    ->label('Organization')
+                    ->options(fn () => Organization::pluck('name', 'id'))
+                    ->query(fn (Builder $query, array $data) => 
+                        $data['value'] ? $query->forOrganization($data['value']) : $query
+                    ),
+                Tables\Filters\SelectFilter::make('organizational_unit_id')
+                    ->label('Organizational Unit')
+                    ->options(fn () => OrganizationalUnit::pluck('name', 'id'))
+                    ->query(fn (Builder $query, array $data) => 
+                        $data['value'] ? $query->forOrganizationalUnit($data['value']) : $query
+                    ),
             ])
             ->actions([
                 Tables\Actions\Action::make('run_report')
@@ -172,7 +227,8 @@ class SavedReportResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->modifyQueryUsing(fn (Builder $query) => $query->with('user'));
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['user', 'organization', 'organizationalUnit'])
+                ->accessibleBy(auth()->user()));
     }
 
     public static function getRelations(): array
@@ -217,6 +273,25 @@ class SavedReportResource extends Resource
     {
         $config = $report->configuration;
         $query = \App\Models\Impression::query();
+
+        // Apply multitenancy scope - aggregate across OU if needed
+        if ($report->organizational_unit_id) {
+            // Get all descendant OUs for aggregation
+            $ou = OrganizationalUnit::find($report->organizational_unit_id);
+            $descendantIds = $ou ? $ou->descendants()->pluck('id')->push($ou->id) : [$report->organizational_unit_id];
+            
+            $query->whereHas('campaign.advertiser', function ($q) use ($descendantIds) {
+                $q->whereIn('organizational_unit_id', $descendantIds);
+            });
+        } elseif ($report->organization_id) {
+            $query->whereHas('campaign.advertiser', function ($q) use ($report) {
+                $q->where('organization_id', $report->organization_id);
+            });
+        } elseif ($report->tenant_id) {
+            $query->whereHas('campaign.advertiser', function ($q) use ($report) {
+                $q->where('tenant_id', $report->tenant_id);
+            });
+        }
 
         // Apply date filters
         if (!empty($config['date_from'])) {

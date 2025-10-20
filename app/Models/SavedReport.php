@@ -12,6 +12,9 @@ class SavedReport extends Model
 
     protected $fillable = [
         'user_id',
+        'tenant_id',
+        'organization_id',
+        'organizational_unit_id',
         'name',
         'report_type',
         'configuration',
@@ -26,6 +29,21 @@ class SavedReport extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
+    public function organizationalUnit(): BelongsTo
+    {
+        return $this->belongsTo(OrganizationalUnit::class);
     }
 
     public function getConfigurationAttribute($value): array
@@ -47,5 +65,42 @@ class SavedReport extends Model
             'revenue' => 'Revenue Report',
             default => 'Unknown',
         };
+    }
+
+    public function scopeForTenant($query, $tenantId)
+    {
+        return $query->where('tenant_id', $tenantId);
+    }
+
+    public function scopeForOrganization($query, $organizationId)
+    {
+        return $query->where('organization_id', $organizationId);
+    }
+
+    public function scopeForOrganizationalUnit($query, $ouId)
+    {
+        return $query->where('organizational_unit_id', $ouId);
+    }
+
+    public function scopeForUserOrPublic($query, $userId)
+    {
+        return $query->where(function ($q) use ($userId) {
+            $q->where('user_id', $userId)
+              ->orWhere('is_public', true);
+        });
+    }
+
+    public function scopeAccessibleBy($query, $user)
+    {
+        if ($user->is_admin) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)
+              ->orWhere('is_public', true)
+              ->orWhere('organization_id', $user->organization_id)
+              ->orWhere('organizational_unit_id', $user->organizational_unit_id);
+        });
     }
 }
