@@ -1,0 +1,32 @@
+{
+    "name": "alpha/reports",
+    "description": "Advanced Analytics Package for SaaSykit",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Alpha Development Team",
+            "email": "team@alpha.dev"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^11.0",
+        "filament/filament": "^3.0",
+        "chartjs/laravel-chartjs": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Alpha\\Reports\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Alpha\\Reports\\ReportsServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

@@ -1,0 +1,65 @@
+{
+  "name": "alpha/reports",
+  "description": "Advanced reporting package for SaaSykit applications",
+  "type": "laravel-package",
+  "keywords": [
+    "laravel",
+    "saasykit",
+    "reports",
+    "analytics",
+    "filament",
+    "advertising",
+    "multi-tenant"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Alpha Development Team",
+      "email": "dev@alpha.com"
+    }
+  ],
+  "require": {
+    "php": "^8.2",
+    "laravel/framework": "^11.0",
+    "filament/filament": "^3.0",
+    "maatwebsite/excel": "^3.1",
+    "spatie/laravel-pdf": "^1.5"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^9.0",
+    "phpunit/phpunit": "^11.0",
+    "laravel/pint": "^1.13",
+    "mockery/mockery": "^1.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "Alpha\\Reports\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Alpha\\Reports\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit",
+    "test:coverage": "phpunit --coverage-html coverage",
+    "format": "pint",
+    "analyse": "phpstan analyse",
+    "build": "composer install && npm run build"
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Alpha\\Reports\\ReportsServiceProvider"
+      ]
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true,
+  "config": {
+    "sort-packages": true,
+    "optimize-autoloader": true,
+    "preferred-install": "dist"
+  }
+}
