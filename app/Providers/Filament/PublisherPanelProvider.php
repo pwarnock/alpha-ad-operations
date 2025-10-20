@@ -18,29 +18,23 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
-class AdminPanelProvider extends PanelProvider
+class PublisherPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
         return $panel
-            ->id('admin')
-            ->path('admin')
+            ->id('publisher')
+            ->path('publisher')
+            ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Blue,
             ])
-            ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
-            ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
+            ->discoverResources(in: app_path('Filament/Publisher/Resources'), for: 'App\\Filament\\Publisher\\Resources')
+            ->discoverPages(in: app_path('Filament/Publisher/Pages'), for: 'App\\Filament\\Publisher\\Pages')
             ->pages([
                 Pages\Dashboard::class,
             ])
-            ->login()
-            ->resources([
-                \Alpha\Reports\Filament\Resources\SavedReportResource::class,
-            ])
-            ->pages([
-                \Alpha\Reports\Filament\Pages\ReportBuilder::class,
-            ])
-            ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
+            ->discoverWidgets(in: app_path('Filament/Publisher/Widgets'), for: 'App\\Filament\\Publisher\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
                 Widgets\FilamentInfoWidget::class,
@@ -53,11 +47,13 @@ class AdminPanelProvider extends PanelProvider
                 ShareErrorsFromSession::class,
                 VerifyCsrfToken::class,
                 SubstituteBindings::class,
+                SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
+                \App\Http\Middleware\InitializeTenancy::class,
             ]);
     }
 }

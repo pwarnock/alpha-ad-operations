@@ -18,29 +18,23 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
-class AdminPanelProvider extends PanelProvider
+class BackofficePanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
         return $panel
-            ->id('admin')
-            ->path('admin')
+            ->id('backoffice')
+            ->path('backoffice')
+            ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Purple,
             ])
-            ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
-            ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
+            ->discoverResources(in: app_path('Filament/Backoffice/Resources'), for: 'App\\Filament\\Backoffice\\Resources')
+            ->discoverPages(in: app_path('Filament/Backoffice/Pages'), for: 'App\\Filament\\Backoffice\\Pages')
             ->pages([
                 Pages\Dashboard::class,
             ])
-            ->login()
-            ->resources([
-                \Alpha\Reports\Filament\Resources\SavedReportResource::class,
-            ])
-            ->pages([
-                \Alpha\Reports\Filament\Pages\ReportBuilder::class,
-            ])
-            ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
+            ->discoverWidgets(in: app_path('Filament/Backoffice/Widgets'), for: 'App\\Filament\\Backoffice\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
                 Widgets\FilamentInfoWidget::class,
@@ -58,6 +52,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                \App\Http\Middleware\InitializeTenancy::class,
             ]);
     }
 }

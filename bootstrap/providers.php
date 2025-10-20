@@ -3,8 +3,10 @@
 return [
     App\Providers\AppServiceProvider::class,
     App\Providers\AuthServiceProvider::class,
-    App\Providers\TenancyServiceProvider::class,
     App\Providers\EventServiceProvider::class,
-    App\Providers\RouteServiceProvider::class,
     App\Providers\Filament\AdminPanelProvider::class,
+    App\Providers\Filament\BackofficePanelProvider::class,
+    App\Providers\Filament\PublisherPanelProvider::class,
+    App\Providers\RouteServiceProvider::class,
+    App\Providers\TenancyServiceProvider::class,
 ];

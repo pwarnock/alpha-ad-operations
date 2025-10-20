@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Tenant extends Model
 {
@@ -37,9 +38,11 @@ class Tenant extends Model
         return $this->belongsTo(OrganizationalUnit::class);
     }
 
-    public function users(): HasMany
+    public function users(): BelongsToMany
     {
-        return $this->hasMany(User::class);
+        return $this->belongsToMany(User::class)
+            ->withPivot(['role', 'joined_at'])
+            ->withTimestamps();
     }
 
     public function savedReports(): HasMany
@@ -65,5 +68,32 @@ class Tenant extends Model
     public function scopeForOrganizationalUnit($query, $ouId)
     {
         return $query->where('organizational_unit_id', $ouId);
+    }
+
+    // SaaSykit compatibility methods
+    public function getSeatCount(): int
+    {
+        return $this->users()->count();
+    }
+
+    public function getMaxSeats(): int
+    {
+        return $this->subscription?->max_seats ?? 1;
+    }
+
+    public function canAddSeat(): bool
+    {
+        return $this->getSeatCount() < $this->getMaxSeats();
+    }
+
+    public function hasUser(User $user): bool
+    {
+        return $this->users()->where('user_id', $user->id)->exists();
+    }
+
+    public function getUserRole(User $user): ?string
+    {
+        $pivot = $this->users()->where('user_id', $user->id)->first();
+        return $pivot?->pivot?->role;
     }
 }

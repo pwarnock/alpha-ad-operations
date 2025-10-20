@@ -12,8 +12,8 @@ Route::get('/pricing', function () {
     $plans = [
         [
             'name' => 'Starter',
-            'price_monthly' => 99,
-            'price_annual' => 990,
+            'price_monthly' => 25,
+            'price_annual' => 300,
             'description' => 'Perfect for small publishers just getting started with programmatic advertising.',
             'features' => [
                 'Single publication',
@@ -26,8 +26,8 @@ Route::get('/pricing', function () {
         ],
         [
             'name' => 'Professional',
-            'price_monthly' => 299,
-            'price_annual' => 2990,
+            'price_monthly' => 35,
+            'price_annual' => 420,
             'description' => 'Ideal for growing media companies with multiple publications.',
             'features' => [
                 'Multiple publications',
