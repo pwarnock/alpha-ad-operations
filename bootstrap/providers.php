@@ -9,4 +9,5 @@ return [
     App\Providers\Filament\PublisherPanelProvider::class,
     App\Providers\RouteServiceProvider::class,
     App\Providers\TenancyServiceProvider::class,
+    Alpha\Reports\ReportsServiceProvider::class,
 ];

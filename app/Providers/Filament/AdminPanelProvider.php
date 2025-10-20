@@ -34,12 +34,7 @@ class AdminPanelProvider extends PanelProvider
                 Pages\Dashboard::class,
             ])
             ->login()
-            ->resources([
-                \Alpha\Reports\Filament\Resources\SavedReportResource::class,
-            ])
-            ->pages([
-                \Alpha\Reports\Filament\Pages\ReportBuilder::class,
-            ])
+            
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,

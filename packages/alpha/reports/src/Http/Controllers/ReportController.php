@@ -2,81 +2,103 @@
 
 namespace Alpha\Reports\Http\Controllers;
 
-use Alpha\Reports\Models\Report;
-use Alpha\Reports\Services\ReportService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
 
 class ReportController extends Controller
 {
-    protected $reportService;
-
-    public function __construct(ReportService $reportService)
-    {
-        $this->reportService = $reportService;
-    }
-
     public function index()
     {
-        $user = Auth::user();
-        $reports = $this->reportService->getReportsForUser($user->id, $user->tenant_id ?? 1);
-
-        return view('reports::index', compact('reports'));
+        return view('reports::index');
     }
 
-    public function create()
+    public function generate(Request $request)
     {
-        return view('reports::create');
+        $filters = $request->only(['rep', 'advertiser', 'product', 'start_date', 'end_date']);
+
+        $query = \App\Models\Impression::query()
+            ->with(['campaign.advertiser', 'lineItem']);
+
+        if ($filters['advertiser']) {
+            $query->whereHas('campaign', function ($q) use ($filters) {
+                $q->where('advertiser_id', $filters['advertiser']);
+            });
+        }
+
+        if ($filters['product']) {
+            // Assume product is a field in lineItem or campaign
+            $query->whereHas('lineItem', function ($q) use ($filters) {
+                $q->where('name', 'like', '%' . $filters['product'] . '%');
+            });
+        }
+
+        if ($filters['start_date']) {
+            $query->where('date', '>=', $filters['start_date']);
+        }
+
+        if ($filters['end_date']) {
+            $query->where('date', '<=', $filters['end_date']);
+        }
+
+        // For rep, assume it's a field in campaign, add later
+        if ($filters['rep']) {
+            $query->whereHas('campaign', function ($q) use ($filters) {
+                $q->where('rep_id', $filters['rep']); // Assume rep_id added
+            });
+        }
+
+        $results = $query->get();
+
+        $data = [
+            'filters' => $filters,
+            'results' => $results,
+        ];
+
+        return view('reports::generate', $data);
     }
 
-    public function store(Request $request)
+    public function export(Request $request, $format)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'filters' => 'nullable|array',
-            'metrics' => 'nullable|array',
-            'chart_type' => 'nullable|string',
-            'is_public' => 'boolean',
-        ]);
+        $filters = $request->only(['rep', 'advertiser', 'product', 'start_date', 'end_date']);
 
-        $validated['user_id'] = Auth::id();
-        $validated['tenant_id'] = Auth::user()->tenant_id ?? 1;
+        $query = \App\Models\Impression::query()
+            ->with(['campaign.advertiser', 'lineItem']);
 
-        $this->reportService->createReport($validated);
+        if ($filters['advertiser']) {
+            $query->whereHas('campaign', function ($q) use ($filters) {
+                $q->where('advertiser_id', $filters['advertiser']);
+            });
+        }
 
-        return redirect()->route('reports.index')->with('success', 'Report created successfully.');
-    }
+        if ($filters['product']) {
+            $query->whereHas('lineItem', function ($q) use ($filters) {
+                $q->where('name', 'like', '%' . $filters['product'] . '%');
+            });
+        }
 
-    public function show($id)
-    {
-        $report = Report::findOrFail($id);
-        $data = $this->reportService->generateReportData($report);
+        if ($filters['start_date']) {
+            $query->where('date', '>=', $filters['start_date']);
+        }
 
-        return view('reports::show', compact('report', 'data'));
-    }
+        if ($filters['end_date']) {
+            $query->where('date', '<=', $filters['end_date']);
+        }
 
-    public function edit($id)
-    {
-        return view('reports::edit', compact('id'));
-    }
+        if ($filters['rep']) {
+            $query->whereHas('campaign', function ($q) use ($filters) {
+                $q->where('rep_id', $filters['rep']);
+            });
+        }
 
-    public function update(Request $request, $id)
-    {
-        // TODO: Implement report update
-        return redirect()->route('reports.index');
-    }
+        $results = $query->get();
 
-    public function destroy($id)
-    {
-        // TODO: Implement report deletion
-        return redirect()->route('reports.index');
-    }
+        if ($format === 'pdf') {
+            $pdf = \Spatie\LaravelPdf\Facades\Pdf::loadView('reports::pdf', ['results' => $results, 'filters' => $filters]);
+            return $pdf->download('report.pdf');
+        } elseif ($format === 'excel') {
+            return \Maatwebsite\Excel\Facades\Excel::download(new \Alpha\Reports\Exports\ReportExport($results, $filters), 'report.xlsx');
+        }
 
-    public function export($id, $format)
-    {
-        // TODO: Implement export functionality
-        return response()->download(/* file path */);
+        return response('Invalid format', 400);
     }
 }

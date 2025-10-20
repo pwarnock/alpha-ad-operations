@@ -32,7 +32,7 @@
   "App\\": "app/",
   "Database\\Factories\\": "database/factories/",
   "Database\\Seeders\\": "database/seeders/",
-    "Alpha\\Reports\\": "packages/reports/src/"
+    "Alpha\\Reports\\": "packages/alpha/reports/src/"
     }
    },
   "autoload-dev": {
