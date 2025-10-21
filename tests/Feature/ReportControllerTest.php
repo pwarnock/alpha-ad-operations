@@ -28,23 +28,29 @@ class ReportControllerTest extends TestCase
     {
         parent::setUp();
         
-        $this->user = User::factory()->create();
-        $this->otherUser = User::factory()->create();
+        // Create tenant for testing
+        $tenant = \App\Models\Tenant::factory()->create();
+        
+        $this->user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $this->otherUser = User::factory()->create(['tenant_id' => $tenant->id]);
         
         $this->publicReport = SavedReport::factory()->create([
             'user_id' => $this->user->id,
+            'tenant_id' => $tenant->id,
             'is_public' => true,
             'name' => 'Public Report',
         ]);
         
         $this->privateReport = SavedReport::factory()->create([
             'user_id' => $this->user->id,
+            'tenant_id' => $tenant->id,
             'is_public' => false,
             'name' => 'Private Report',
         ]);
         
         $this->otherUserReport = SavedReport::factory()->create([
             'user_id' => $this->otherUser->id,
+            'tenant_id' => $tenant->id,
             'is_public' => false,
             'name' => 'Other User Report',
         ]);

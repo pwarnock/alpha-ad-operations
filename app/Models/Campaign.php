@@ -13,6 +13,7 @@ class Campaign extends Model
 
     protected $fillable = [
         'advertiser_id',
+        'product_id',
         'name',
         'description',
         'status',
@@ -39,6 +40,11 @@ class Campaign extends Model
     public function advertiser(): BelongsTo
     {
         return $this->belongsTo(Advertiser::class);
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
     }
 
     public function lineItems(): HasMany

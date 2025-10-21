@@ -13,6 +13,7 @@ class Impression extends Model
     protected $fillable = [
         'line_item_id',
         'campaign_id',
+        'user_id',
         'date',
         'impressions',
         'clicks',
@@ -37,6 +38,11 @@ class Impression extends Model
     public function campaign(): BelongsTo
     {
         return $this->belongsTo(Campaign::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function getCtrAttribute(): float

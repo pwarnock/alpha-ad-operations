@@ -65,6 +65,7 @@ Route::get('/register', function () {
 
 // Report routes (require authentication)
 Route::middleware(['auth'])->group(function () {
+    Route::get('/reports/{saved_report}', [ReportController::class, 'show'])->name('reports.show');
     Route::get('/reports/{saved_report}/run', [ReportController::class, 'run'])->name('reports.run');
     Route::post('/reports/{saved_report}/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
     Route::post('/reports/{saved_report}/export/excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');

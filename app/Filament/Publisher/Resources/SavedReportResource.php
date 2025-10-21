@@ -61,6 +61,22 @@ class SavedReportResource extends Resource
                             ->multiple()
                             ->searchable()
                             ->preload(),
+
+                        Forms\Components\Select::make('filters.user_id')
+                            ->label('Sales Reps')
+                            ->options(\App\Models\User::pluck('name', 'id'))
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->helperText('Filter by sales representative'),
+
+                        Forms\Components\Select::make('filters.product_id')
+                            ->label('Products')
+                            ->options(\App\Models\Product::pluck('name', 'id'))
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->helperText('Filter by product'),
                     ])
                     ->columns(2),
 
@@ -97,6 +113,8 @@ class SavedReportResource extends Resource
                                 'advertiser' => 'Advertiser',
                                 'campaign' => 'Campaign',
                                 'line_item' => 'Line Item',
+                                'user' => 'Sales Rep',
+                                'product' => 'Product',
                             ])
                             ->multiple()
                             ->default(['date']),
@@ -146,6 +164,11 @@ class SavedReportResource extends Resource
                     ->native(false),
             ])
             ->actions([
+                Tables\Actions\Action::make('run')
+                    ->label('Run Report')
+                    ->icon('heroicon-o-play')
+                    ->url(fn (SavedReport $record): string => route('reports.show', $record))
+                    ->openUrlInNewTab(),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -181,6 +204,14 @@ class SavedReportResource extends Resource
         // Apply tenant filtering if tenant is available
         if (auth()->check() && auth()->user()->tenant_id) {
             $query->where('tenant_id', auth()->user()->tenant_id);
+        }
+
+        // Show user's own reports plus public reports
+        if (auth()->check()) {
+            $query->where(function ($q) {
+                $q->where('user_id', auth()->id())
+                  ->orWhere('is_public', true);
+            });
         }
 
         return $query;
