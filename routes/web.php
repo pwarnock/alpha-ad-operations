@@ -70,6 +70,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/reports/{saved_report}/export/excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');
 });
 
+// Redirect admin to publisher to avoid confusion
+Route::redirect('/admin', '/publisher', 301);
+
 // Filament admin routes (auto-registered)
 // Route::middleware(['auth', 'verified'])->group(function () {
 //     Route::get('/dashboard', function () {
