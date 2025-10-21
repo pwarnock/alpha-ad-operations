@@ -56,9 +56,33 @@ class ReportController extends Controller
         $data = $this->getReportData($report);
         $html = $this->generatePdfHtml($data, $report);
         
-        return \Spatie\LaravelPdf\Facades\Pdf::html($html)
-            ->format('a4')
-            ->download($report->name . '.pdf');
+        try {
+            // Try DomPDF first (lighter, no external dependencies)
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
+            return $pdf->download($report->name . '.pdf');
+        } catch (\Exception $e) {
+            // Fallback to HTML if PDF generation fails
+            return response($html)
+                ->header('Content-Type', 'text/html')
+                ->header('Content-Disposition', 'attachment; filename="' . $report->name . '.html"');
+        }
+    }
+
+    public function exportHtml($saved_report)
+    {
+        $report = SavedReport::findOrFail($saved_report);
+        
+        // Check if user has access to this report
+        if (!$report->is_public && $report->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $data = $this->getReportData($report);
+        $html = $this->generatePdfHtml($data, $report);
+        
+        return response($html)
+            ->header('Content-Type', 'text/html')
+            ->header('Content-Disposition', 'attachment; filename="' . $report->name . '.html"');
     }
 
     public function exportExcel($saved_report)

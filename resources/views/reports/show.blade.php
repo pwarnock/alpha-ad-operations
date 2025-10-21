@@ -24,6 +24,16 @@
                 </button>
             </form>
             
+            <form method="POST" action="{{ route('reports.export.html', $report) }}" class="inline">
+                @csrf
+                <button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded inline-flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                    </svg>
+                    Export HTML
+                </button>
+            </form>
+            
             <form method="POST" action="{{ route('reports.export.excel', $report) }}" class="inline">
                 @csrf
                 <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded inline-flex items-center">
