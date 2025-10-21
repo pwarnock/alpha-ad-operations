@@ -3,11 +3,14 @@
 namespace Alpha\Reports\Services;
 
 use Alpha\Reports\Contracts\SaaSykitCompatible;
+use Alpha\Reports\Traits\UsesReportsConfig;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 
 class SaaSykitReportsService implements SaaSykitCompatible
 {
+    use UsesReportsConfig;
+
     protected ?object $tenantManager = null;
     protected ?object $subscriptionManager = null;
     protected ?object $currentTenant = null;
@@ -22,6 +25,12 @@ class SaaSykitReportsService implements SaaSykitCompatible
      */
     protected function initializeSaaSykitServices(): void
     {
+        // Check if SaaSykit is available through environment detection
+        if (!$this->isSaaSykitAvailable()) {
+            $this->logReports('info', 'SaaSykit not available, service running in standalone mode');
+            return;
+        }
+
         $app = app();
 
         // Initialize tenant manager
@@ -34,6 +43,12 @@ class SaaSykitReportsService implements SaaSykitCompatible
         if (class_exists('\SaaSykit\Subscription\SubscriptionManager') && $app->bound(\SaaSykit\Subscription\SubscriptionManager::class)) {
             $this->subscriptionManager = $app->make(\SaaSykit\Subscription\SubscriptionManager::class);
         }
+
+        $this->logReports('info', 'SaaSykit services initialized', [
+            'tenant_manager_available' => $this->tenantManager !== null,
+            'subscription_manager_available' => $this->subscriptionManager !== null,
+            'current_tenant_id' => $this->getCurrentTenantId(),
+        ]);
     }
 
     /**
@@ -54,10 +69,11 @@ class SaaSykitReportsService implements SaaSykitCompatible
     public function getReportLimit(): int
     {
         if (!$this->subscriptionManager) {
-            return config('reports.max_reports_per_tenant', 50);
+            return $this->getReportsConfig('tenant.max_reports_per_tenant', 50);
         }
 
-        return $this->subscriptionManager->getLimit('reports.max_per_tenant', config('reports.max_reports_per_tenant', 50));
+        $configLimit = $this->getReportsConfig('tenant.max_reports_per_tenant', 50);
+        return $this->subscriptionManager->getLimit('reports.max_per_tenant', $configLimit);
     }
 
     /**
@@ -65,26 +81,28 @@ class SaaSykitReportsService implements SaaSykitCompatible
      */
     public function getAvailableFeatures(): array
     {
-        $defaultFeatures = [
+        // Get configured features as defaults
+        $defaultFeatures = $this->getReportsConfig('features', [
             'basic_reports' => true,
             'advanced_filters' => false,
             'chart_visualization' => false,
             'excel_export' => false,
             'api_access' => false,
             'real_time_updates' => false,
-        ];
+        ]);
 
         if (!$this->subscriptionManager) {
             return $defaultFeatures;
         }
 
+        // Override with subscription features
         $subscriptionFeatures = [
-            'basic_reports' => $this->subscriptionManager->hasFeature('reports.basic') ?? true,
-            'advanced_filters' => $this->subscriptionManager->hasFeature('reports.advanced_filters') ?? false,
-            'chart_visualization' => $this->subscriptionManager->hasFeature('reports.charts') ?? false,
-            'excel_export' => $this->subscriptionManager->hasFeature('reports.excel_export') ?? false,
-            'api_access' => $this->subscriptionManager->hasFeature('reports.api_access') ?? false,
-            'real_time_updates' => $this->subscriptionManager->hasFeature('reports.real_time') ?? false,
+            'basic_reports' => $this->subscriptionManager->hasFeature('reports.basic') ?? $defaultFeatures['basic_reports'],
+            'advanced_filters' => $this->subscriptionManager->hasFeature('reports.advanced_filters') ?? $defaultFeatures['advanced_filters'],
+            'chart_visualization' => $this->subscriptionManager->hasFeature('reports.charts') ?? $defaultFeatures['chart_visualization'],
+            'excel_export' => $this->subscriptionManager->hasFeature('reports.excel_export') ?? $defaultFeatures['excel_export'],
+            'api_access' => $this->subscriptionManager->hasFeature('reports.api_access') ?? $defaultFeatures['api_access'],
+            'real_time_updates' => $this->subscriptionManager->hasFeature('reports.real_time') ?? $defaultFeatures['real_time_updates'],
         ];
 
         return array_merge($defaultFeatures, $subscriptionFeatures);
@@ -98,35 +116,33 @@ class SaaSykitReportsService implements SaaSykitCompatible
         $tenantId = $this->getCurrentTenantId();
         
         if (!$tenantId) {
-            Log::warning('Attempted to track report usage without active tenant', [
+            $this->logReports('warning', 'Attempted to track report usage without active tenant', [
                 'report_type' => $reportType,
                 'metadata' => $metadata,
             ]);
             return;
         }
 
-        // Log usage for analytics
-        Log::info('Report usage tracked', [
-            'tenant_id' => $tenantId,
-            'report_type' => $reportType,
-            'metadata' => $metadata,
-            'timestamp' => now()->toISOString(),
-        ]);
+        // Use the trait's tracking method
+        parent::trackReportUsage($reportType, $metadata);
 
         // Fire SaaSykit-compatible event if available
         if (class_exists('\SaaSykit\Events\UsageTracked')) {
             event(new \SaaSykit\Events\UsageTracked('reports', $reportType, $metadata));
         }
 
-        // Update usage cache
-        $cacheKey = "reports.usage.{$tenantId}." . now()->format('Y-m-d');
+        // Update usage cache with tenant-aware configuration
+        $cachePrefix = $this->getReportsConfig('performance.cache.prefix', 'reports');
+        $cacheKey = "{$cachePrefix}.usage.{$tenantId}." . now()->format('Y-m-d');
         $usage = Cache::get($cacheKey, []);
         $usage[] = [
             'type' => $reportType,
             'timestamp' => now()->timestamp,
             'metadata' => $metadata,
         ];
-        Cache::put($cacheKey, $usage, now()->endOfDay());
+        
+        $ttl = $this->getCacheTTL('usage');
+        Cache::put($cacheKey, $usage, now()->endOfDay()->addSeconds($ttl));
     }
 
     /**

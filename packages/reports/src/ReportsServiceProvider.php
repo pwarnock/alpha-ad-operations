@@ -8,6 +8,9 @@ use Alpha\Reports\Services\ReportBuilderService;
 use Alpha\Reports\Services\ChartDataService;
 use Alpha\Reports\Services\ReportFilterService;
 use Alpha\Reports\Services\SaaSykitReportsService;
+use Alpha\Reports\Services\EnvironmentDetectionService;
+use Alpha\Reports\Services\ConfigurationManager;
+use Alpha\Reports\Commands\ValidateConfigurationCommand;
 use Alpha\Reports\Contracts\ReportBuilderServiceInterface;
 
 class ReportsServiceProvider extends ServiceProvider
@@ -20,6 +23,7 @@ class ReportsServiceProvider extends ServiceProvider
     public $singletons = [
         ReportFilterService::class => ReportFilterService::class,
         SaaSykitReportsService::class => SaaSykitReportsService::class,
+        EnvironmentDetectionService::class => EnvironmentDetectionService::class,
     ];
 
     /**
@@ -32,6 +36,16 @@ class ReportsServiceProvider extends ServiceProvider
             'reports'
         );
 
+        // Register environment detection service first
+        $this->app->singleton(EnvironmentDetectionService::class, function ($app) {
+            return new EnvironmentDetectionService();
+        });
+
+        // Register configuration manager with environment detection
+        $this->app->singleton(ConfigurationManager::class, function ($app) {
+            return new ConfigurationManager($app->make(EnvironmentDetectionService::class));
+        });
+
         // Register SaaSykit compatibility services
         $this->registerSaaSykitServices();
     }
@@ -41,6 +55,9 @@ class ReportsServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Initialize environment detection and configuration
+        $this->initializePackageConfiguration();
+
         $this->loadViewsFrom(__DIR__.'/Views', 'reports');
         $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
         
@@ -67,7 +84,7 @@ class ReportsServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->commands([
-                // Commands will be registered here
+                ValidateConfigurationCommand::class,
             ]);
         }
 
@@ -78,12 +95,32 @@ class ReportsServiceProvider extends ServiceProvider
         $this->registerEventListeners();
     }
 
+/**
+     * Initialize package configuration.
+     */
+    protected function initializePackageConfiguration(): void
+    {
+        // Initialize environment detection
+        $envDetection = $this->app->make(EnvironmentDetectionService::class);
+        
+        // Initialize configuration manager
+        $configManager = $this->app->make(ConfigurationManager::class);
+        
+        // Log configuration summary
+        if ($this->app->bound('log')) {
+            $this->app['log']->info('Alpha Reports package initialized', [
+                'environment_summary' => $envDetection->getSummary(),
+                'recommendations' => $configManager->getRecommendations(),
+            ]);
+        }
+    }
+
     /**
-    * Register SaaSykit-specific services.
-    */
+     * Register SaaSykit-specific services.
+     */
     protected function registerSaaSykitServices(): void
     {
-    // SaaSykit services will be registered when available
+        // SaaSykit services will be registered when available
     }
 
     /**
@@ -118,10 +155,14 @@ class ReportsServiceProvider extends ServiceProvider
     public function provides(): array
     {
         return [
-        ReportFilterService::class,
-        SaaSykitReportsService::class,
-        'alpha.reports.tenant',
-        'alpha.reports.subscription',
+            ReportFilterService::class,
+            SaaSykitReportsService::class,
+            EnvironmentDetectionService::class,
+            ConfigurationManager::class,
+            'alpha.reports.tenant',
+            'alpha.reports.subscription',
+            'alpha.reports.config',
+            'alpha.reports.environment',
         ];
     }
 }
