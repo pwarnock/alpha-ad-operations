@@ -10,7 +10,9 @@ use Alpha\Reports\Services\ReportFilterService;
 use Alpha\Reports\Services\SaaSykitReportsService;
 use Alpha\Reports\Services\EnvironmentDetectionService;
 use Alpha\Reports\Services\ConfigurationManager;
+use Alpha\Reports\Services\MigrationManager;
 use Alpha\Reports\Commands\ValidateConfigurationCommand;
+use Alpha\Reports\Commands\ManageMigrationsCommand;
 use Alpha\Reports\Contracts\ReportBuilderServiceInterface;
 
 class ReportsServiceProvider extends ServiceProvider
@@ -46,6 +48,14 @@ class ReportsServiceProvider extends ServiceProvider
             return new ConfigurationManager($app->make(EnvironmentDetectionService::class));
         });
 
+        // Register migration manager
+        $this->app->singleton(MigrationManager::class, function ($app) {
+            return new MigrationManager(
+                $app->make(EnvironmentDetectionService::class),
+                $app->make('migrator')
+            );
+        });
+
         // Register SaaSykit compatibility services
         $this->registerSaaSykitServices();
     }
@@ -59,7 +69,7 @@ class ReportsServiceProvider extends ServiceProvider
         $this->initializePackageConfiguration();
 
         $this->loadViewsFrom(__DIR__.'/Views', 'reports');
-        $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         
         // Register routes if they exist
         if (file_exists(__DIR__.'/routes/web.php')) {
@@ -85,6 +95,7 @@ class ReportsServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 ValidateConfigurationCommand::class,
+                ManageMigrationsCommand::class,
             ]);
         }
 
@@ -159,10 +170,12 @@ class ReportsServiceProvider extends ServiceProvider
             SaaSykitReportsService::class,
             EnvironmentDetectionService::class,
             ConfigurationManager::class,
+            MigrationManager::class,
             'alpha.reports.tenant',
             'alpha.reports.subscription',
             'alpha.reports.config',
             'alpha.reports.environment',
+            'alpha.reports.migration',
         ];
     }
 }
