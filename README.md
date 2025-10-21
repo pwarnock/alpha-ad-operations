@@ -35,7 +35,7 @@ A comprehensive Laravel-based SaaS platform for managing advertising operations 
 - **Admin Panel**: Filament 3.x for admin interface
 - **Frontend**: Blade templates with Tailwind CSS
 - **Database**: SQLite (configurable for MySQL/PostgreSQL)
-- **PDF Generation**: Spatie Laravel PDF
+- **PDF Generation**: Barryvdh DomPDF (lightweight PHP solution)
 - **Excel Export**: Laravel Excel (Maatwebsite)
 
 ## Installation
@@ -191,7 +191,8 @@ git push origin --tags       # Push tags to remote
 ### Running Reports
 
 - Click "Run Report" to view results in browser
-- Export to PDF for print-friendly format
+- Export to PDF for print-friendly format (DomPDF - lightweight PHP solution)
+- Export to HTML for web-friendly format
 - Export to Excel for data analysis
 
 ## Marketing Pages
@@ -229,6 +230,8 @@ composer install --no-dev --optimize-autoloader
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
+
+# Note: PDF generation uses DomPDF (pure PHP) - no external dependencies required
 ```
 
 ## Security Considerations
@@ -302,6 +305,7 @@ This project is licensed under the MIT License.
 - **[AGENTS.md](AGENTS.md)**: Development guidelines and coding standards
 - **[DEPLOYMENT.md](DEPLOYMENT.md)**: Deployment instructions
 - **[LARAVEL_AD_OPS_PLAN.md](LARAVEL_AD_OPS_PLAN.md)**: Project planning document
+- **[PDF Setup](PDF_SETUP.md)**: PDF export configuration and troubleshooting
 
 ## Support
 
