@@ -11,8 +11,9 @@ class InitializeTenancy
 {
     public function handle(Request $request, Closure $next)
     {
-        // Skip tenancy for admin panel routes
-        if (str_starts_with($request->path(), 'admin')) {
+        // Skip tenancy for Filament panel routes
+        $path = $request->path();
+        if (str_starts_with($path, 'admin') || str_starts_with($path, 'backoffice') || str_starts_with($path, 'publisher')) {
             return $next($request);
         }
 
