@@ -43,6 +43,8 @@
   },
   "scripts": {
     "post-autoload-dump": [
+      "mkdir -p bootstrap/cache",
+      "chmod -R 775 bootstrap/cache",
       "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
       "@php artisan package:discover --ansi",
       "@php artisan filament:upgrade"
