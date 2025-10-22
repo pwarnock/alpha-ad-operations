@@ -76,7 +76,8 @@ class User extends Authenticatable implements FilamentUser
     {
         // Allow access based on panel and user role
         return match ($panel->getId()) {
-            'admin', 'backoffice', 'publisher' => $this->is_admin,
+            'admin', 'backoffice' => $this->is_admin,
+            'publisher' => true, // Allow any authenticated user to access publisher panel
             default => false,
         };
     }
