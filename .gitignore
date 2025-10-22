@@ -40,5 +40,13 @@ Thumbs.db
 bootstrap/cache/packages.php
 bootstrap/cache/services.php
 
+# Storage
+storage/framework/views/
+storage/framework/cache/
+storage/logs/
+
+# Database
+database/database.sqlite
+
 # Config
 config/app.php
