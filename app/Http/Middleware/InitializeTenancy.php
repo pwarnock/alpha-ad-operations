@@ -11,13 +11,18 @@ class InitializeTenancy
 {
     public function handle(Request $request, Closure $next)
     {
+        // Skip tenancy for admin panel routes
+        if ($request->is('admin*')) {
+            return $next($request);
+        }
+
         $tenant = $this->resolveTenant($request);
-        
+
         if ($tenant) {
             // Set tenant context for the request
             app()->instance('current_tenant', $tenant);
             session(['tenant_id' => $tenant->id]);
-            
+
             // You can add database switching logic here if needed
             // $this->switchDatabase($tenant);
         }
