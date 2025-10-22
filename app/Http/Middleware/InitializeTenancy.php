@@ -12,7 +12,7 @@ class InitializeTenancy
     public function handle(Request $request, Closure $next)
     {
         // Skip tenancy for admin panel routes
-        if ($request->is('admin*')) {
+        if (str_starts_with($request->path(), 'admin')) {
             return $next($request);
         }
 
